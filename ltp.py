@@ -12,3 +12,4 @@ conn = pymssql.connect(server, user, password, database)
 df = pd.read_sql_query(sql, conn)
 
 print([item.manipulation for item in df.itertuples()])
+print()
