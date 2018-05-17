@@ -7,7 +7,7 @@ from pyltp import Parser
 from pyltp import SementicRoleLabeller
 
 
-ltp_data_direction = r'C:\Users\Zhang Mingqiu\PycharmProjects\languageProcessing\ltp_data_v3.4.0'
+ltp_data_direction = r'H:\virtual environments\venv_ltp\ltp_data_v3.4.0'
 cws_model_path = os.path.join(ltp_data_direction, 'cws.model')
 pos_model_path = os.path.join(ltp_data_direction, 'pos.model')
 par_model_path = os.path.join(ltp_data_direction, 'parser.model')
