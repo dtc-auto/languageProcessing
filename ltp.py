@@ -175,4 +175,4 @@ combined = combine(sentences, words, tags, recognized_tags, heads, relations)
 # print(list(zip(heads, relations)))
 # print(heads)
 print(combined)
-
+len()
