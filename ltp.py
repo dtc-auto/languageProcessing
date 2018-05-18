@@ -32,7 +32,6 @@ def split_into_sentences(read_):
     for sentence in read_.itertuples():  # 提取出每一个句子
         yield sentence.value.split('，')  # 完整的句子拆分成一个个分句并添加到sentence列表中
 
-
 def split_into_words(sentences_):
     segmentor = Segmentor()  # 初始化实例
     segmentor.load(cws_model_path)  # 载入模型
@@ -142,6 +141,7 @@ def combine(sentences_, words_, postags_, netags_,  heads_, relations_):  # 参�
 
 
 read = read_the_sql('''select top 50 * from dw.Comments_Unpivot''')
+for item in read:
 sentences = split_into_sentences(read)
 words = split_into_words(sentences)
 tags = posttagger(words)
