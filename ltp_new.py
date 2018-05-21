@@ -27,7 +27,7 @@ def connect_db():
     return conn
 
 
-def load_model(segmentor, postagger, recognizer, parser):
+def load_model():
     # 载入模型
     segmentor.load(cws_model_path)
     postagger.load(pos_model_path)
@@ -42,20 +42,33 @@ def get_data(sql, conn):
 
 def process_data(data):
     # 整合处理文字的过程
+    sentence_index = 0
     for sentence in data.value:
-        result = sentence.value.split('，')
-        words = list(segmentor.segment(result))
-        for word_index, word in enumerate(words):
-            tags = list(postagger.postag(word))
-            for tags_index, tag in enumerate(tags):
-                if word_index == tags_index:
-                    netags = list(recognizer.recognize(word, tag))
-                    arcs = list(parser.parse(word, tag))
-
-                else:
-                    break
-
-
+        result = sentence.split('，')  # 分句方式需要修改
+        word_count = 1
+        sentence_index += 1
+        for item in result:
+            words = list(segmentor.segment(item))
+            tags = list(postagger.postag(words))
+            netags = list(recognizer.recognize(words, tags))
+            arcs = list(parser.parse(words, tags))
+            word_index = 0
+            while word_index < len(words):
+                return_list = list()
+                return_list.append(sentence_index)
+                return_list.append(word_count)
+                return_list.append(words[word_index])
+                return_list.append(tags[word_index])
+                return_list.append(netags[word_index])
+                for arcs_index, arc in enumerate(arcs):
+                    if arcs_index == word_index:
+                        return_list.append(arc.head)
+                        return_list.append(arc.relation)
+                    elif arcs_index > word_index:
+                        break
+                yield return_list
+                word_count += 1
+                word_index += 1
 
 
 def write_data(result):
@@ -63,7 +76,7 @@ def write_data(result):
     # pd.to_sql
 
 
-def release_model(segmentor, postagger, recognizer, parser):
+def release_model():
     # 释放模型
     segmentor.release()
     postagger.release()
@@ -73,14 +86,16 @@ def release_model(segmentor, postagger, recognizer, parser):
 
 if __name__ == '__main__':
     pass
-    # sql = '''select top 50 * from dw.Comments_Unpivot'''
+    sql = '''select top 50 * from dw.Comments_Unpivot'''
     segmentor = Segmentor()  # 初始化实例
     postagger = Postagger()  # 初始化实例
     recognizer = NamedEntityRecognizer()  # 初始化实例
     parser = Parser()  # 初始化实例
-    # conn = connect_db()
-    # load_model()
-    # data = get_data(sql, conn)
+    conn = connect_db()
+    load_model()
+    data = get_data(sql, conn)
     # result = process_data(data)
-    # write_data(result)
-    # release_model()
+    for result in process_data(data):
+        print(result)
+    write_data(result)
+    release_model()

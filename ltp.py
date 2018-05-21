@@ -142,7 +142,7 @@ def combine(sentences_, words_, postags_, netags_,  heads_, relations_):  # å‚æ
 
 read = read_the_sql('''select top 50 * from dw.Comments_Unpivot''')
 for item in read:
-sentences = split_into_sentences(read)
+    sentences = split_into_sentences(read)
 words = split_into_words(sentences)
 tags = posttagger(words)
 recognized_tags = named_entity_recognizer(words, tags)
