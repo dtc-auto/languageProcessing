@@ -40,14 +40,21 @@ def get_data(sql, conn):
     return data
 
 
+def split_sentence(sql_data):
+    for sentence in sql_data.value:
+        sentence_index = 0
+        result = sentence.split(', ')
+        yield result
+
+
 def process_data(data):
     # 整合处理文字的过程
-    sentence_index = 0
     for sentence in data.value:
         result = sentence.split('，')  # 分句方式需要修改
         word_count = 1
-        sentence_index += 1
+        sentence_index = 0
         for item in result:
+            sentence_index += 1
             words = list(segmentor.segment(item))
             tags = list(postagger.postag(words))
             netags = list(recognizer.recognize(words, tags))
@@ -94,8 +101,21 @@ if __name__ == '__main__':
     conn = connect_db()
     load_model()
     data = get_data(sql, conn)
-    # result = process_data(data)
-    for result in process_data(data):
-        print(result)
-    write_data(result)
+    # for sentence in split_sentence(data):
+    #     print(sentence)
+    # # result = process_data(data)
+    # for result in process_data(data):
+    #     print(result)
+    df = pd.DataFrame(
+        list(
+            process_data(data)
+        ),
+        columns=[
+            'sentenceId', 'word_index', 'word',
+            'part_of_speech', 'named_entity', 'parent_node',
+            'children_relation',
+        ]
+    )
+    print(df)
+    # write_data(result)
     release_model()
