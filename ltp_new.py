@@ -2,6 +2,7 @@ import pymssql
 import pandas as pd
 import os
 import re
+from sqlalchemy import create_engine
 from pyltp import Segmentor
 from pyltp import Postagger
 from pyltp import Parser
@@ -42,6 +43,8 @@ def get_data(sql, conn):
 def split_sentence(sql_data):
     sentence_index = 0
     i = -1
+    for comment_id in sql_data.commentId:
+
     for sentences in sql_data.value:
         sentence_list = re.split(pattern, sentences)  # sentence_list为断句后形成的句子列表
         i += 1
@@ -88,11 +91,11 @@ def process_data(data):
                 word_index += 1
 
 
-def write_data(table_name, result):
+def write_data(engine, table_name, result):
     result.io.sql.to_sql(
         table_name,
-        conn,
-        schema='',
+        conn=engine,
+        index='False',
         if_exists='append'
     )
 
@@ -107,6 +110,7 @@ def release_model(segmentor, postagger, recognizer, parser):
 
 
 if __name__ == '__main__':
+    engine = create_engine('mssql+pymssql://dtc:asdf1234@sqldev02/Autohome_WOM')
     conn = connect_db()
     pattern = re.compile(
         u'\,|，|。|\?|？|\!|！|\;|；|\(|（|\)|）|…|：|\*|\n|\s|\t| |　|\.\.+'
@@ -146,13 +150,13 @@ if __name__ == '__main__':
             )
         ),
         columns=[
-            'sentenceId',  'sentencePos', 'sentenceValue'
+            'commentId',  'sentencePos', 'sentenceValue'
         ]
     )
-    # print(df)
-    write_data(
-        'dw.Sentences',
-        df2
-    )
+    print(df2)
+    # write_data(
+    #     'dw.Sentences',
+    #     df2
+    # )
     release_model(segmentor, postagger, recognizer, parser)
 
