@@ -1,6 +1,7 @@
 import pymssql
 import pandas as pd
 import os
+import re
 from pyltp import Segmentor
 from pyltp import Postagger
 from pyltp import Parser
@@ -19,12 +20,10 @@ user = "dtc"
 password = "asdf1234"
 database = "Autohome_WOM"
 
-conn = pymssql.connect(server, user, password, database)
-
 
 def connect_db():
-    conn = pymssql.connect(server, user, password, database)
-    return conn
+    connected = pymssql.connect(server, user, password, database)
+    return connected
 
 
 def load_model():
@@ -41,19 +40,30 @@ def get_data(sql, conn):
 
 
 def split_sentence(sql_data):
-    for sentence in sql_data.value:
-        sentence_index = 0
-        result = sentence.split(', ')
-        yield result
+    sentence_index = 0
+    i = -1
+    for sentences in sql_data.value:
+        sentence_list = re.split(pattern, sentences)  # sentence_list为断句后形成的句子列表
+        i += 1
+        for sentence_pos, sentence_value in enumerate(sentence_list):
+            sentence_index += 1
+            return_list = list()
+            if sentence_value != '':
+                return_list.append(sentence_index)
+                return_list.append(sentence_pos + 1)
+                return_list.append(sentence_value)
+                yield return_list
+            else:
+                break
 
 
 def process_data(data):
     # 整合处理文字的过程
+    sentence_index = 0
     for sentence in data.value:
-        result = sentence.split('，')  # 分句方式需要修改
+        sentence_list = re.split(pattern, sentence)  # sentence_list为断句后形成的句子列表
         word_count = 1
-        sentence_index = 0
-        for item in result:
+        for item in sentence_list:
             sentence_index += 1
             words = list(segmentor.segment(item))
             tags = list(postagger.postag(words))
@@ -78,21 +88,29 @@ def process_data(data):
                 word_index += 1
 
 
-def write_data(result):
-    pass
-    # pd.to_sql
+def write_data(table_name, result):
+    result.io.sql.to_sql(
+        table_name,
+        conn,
+        schema='',
+        if_exists='append'
+    )
 
 
-def release_model():
+def release_model(segmentor, postagger, recognizer, parser):
     # 释放模型
     segmentor.release()
     postagger.release()
     recognizer.release()
     parser.release()
+    return
 
 
 if __name__ == '__main__':
-    pass
+    conn = connect_db()
+    pattern = re.compile(
+        u'\,|，|。|\?|？|\!|！|\;|；|\(|（|\)|）|…|：|\*|\n|\s|\t| |　|\.\.+'
+    )
     sql = '''select top 50 * from dw.Comments_Unpivot'''
     segmentor = Segmentor()  # 初始化实例
     postagger = Postagger()  # 初始化实例
@@ -100,7 +118,10 @@ if __name__ == '__main__':
     parser = Parser()  # 初始化实例
     conn = connect_db()
     load_model()
-    data = get_data(sql, conn)
+    data = get_data(
+        sql,
+        conn
+    )
     # for sentence in split_sentence(data):
     #     print(sentence)
     # # result = process_data(data)
@@ -108,7 +129,9 @@ if __name__ == '__main__':
     #     print(result)
     df = pd.DataFrame(
         list(
-            process_data(data)
+            process_data(
+                data
+            )
         ),
         columns=[
             'sentenceId', 'word_index', 'word',
@@ -116,6 +139,20 @@ if __name__ == '__main__':
             'children_relation',
         ]
     )
-    print(df)
-    # write_data(result)
-    release_model()
+    df2 = pd.DataFrame(
+        list(
+            split_sentence(
+                data
+            )
+        ),
+        columns=[
+            'sentenceId',  'sentencePos', 'sentenceValue'
+        ]
+    )
+    # print(df)
+    write_data(
+        'dw.Sentences',
+        df2
+    )
+    release_model(segmentor, postagger, recognizer, parser)
+
