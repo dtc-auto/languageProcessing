@@ -8,7 +8,6 @@ from pyltp import Postagger
 from pyltp import Parser
 from pyltp import NamedEntityRecognizer
 
-
 ltp_data_direction = r'H:\virtual environments\venv_ltp\ltp_data_v3.4.0'
 cws_model_path = os.path.join(ltp_data_direction, 'cws.model')
 pos_model_path = os.path.join(ltp_data_direction, 'pos.model')
@@ -75,25 +74,25 @@ def process_data(sql_data):
         netags = list(recognizer.recognize(words, tags))
         arcs = list(parser.parse(words, tags))
         word_index = 0
-            while word_index < len(words):
-                return_list = list()
-                return_list.append(sentences.sentenceId)
-                return_list.append(word_count)
-                return_list.append(words[word_index])
-                return_list.append(tags[word_index])
-                return_list.append(netags[word_index])
-                for arcs_index, arc in enumerate(arcs):
-                    if arcs_index == word_index:
-                        return_list.append(arc.head)
-                        return_list.append(arc.relation)
-                    elif arcs_index > word_index:
-                        break
-                if counter == 100:
-                    print(counter)
-                    counter = 0
-                yield return_list
-                word_count += 1
-                word_index += 1
+        while word_index < len(words):
+            return_list = list()
+            return_list.append(sentences.sentenceId)
+            return_list.append(word_count)
+            return_list.append(words[word_index])
+            return_list.append(tags[word_index])
+            return_list.append(netags[word_index])
+            for arcs_index, arc in enumerate(arcs):
+                if arcs_index == word_index:
+                    return_list.append(arc.head)
+                    return_list.append(arc.relation)
+                elif arcs_index > word_index:
+                    break
+            if counter == 100000:
+                print(counter)
+                counter = 0
+            yield return_list
+            word_count += 1
+            word_index += 1
 
 
 def write_data(engine, table_name, result):
@@ -146,4 +145,3 @@ if __name__ == '__main__':
     # write_data(engine, 'Words', df)
     # print('finished')
     release_model(segmentor, postagger, recognizer, parser)
-
