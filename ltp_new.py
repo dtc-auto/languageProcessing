@@ -2,6 +2,7 @@ import pymssql
 import pandas as pd
 import os
 import re
+import threading
 from sqlalchemy import create_engine
 from pyltp import Segmentor
 from pyltp import Postagger
@@ -44,6 +45,18 @@ def get_data(sql, conn):
     return data
 
 
+def thread_job():
+    print('This is an added Thread, number is %s' % threading.current_thread())
+
+
+def multi_threads():
+    added_thread = threading.Thread(target=thread_job())
+    added_thread.start()
+    print(threading.active_count())
+    # print(threading.enumerate())
+    # print(threading.current_thread())
+
+
 def split_sentence(sql_data):
     sentence_index = 0
     # count = 0
@@ -69,6 +82,8 @@ def process_data(sql_data):
     for sentences in sql_data.itertuples():
         word_count = 1
         counter += 1
+        if counter % 100000 == 0:
+            print(counter)
         words = list(segmentor.segment(sentences.sentenceValue))
         tags = list(postagger.postag(words))
         netags = list(recognizer.recognize(words, tags))
@@ -87,23 +102,29 @@ def process_data(sql_data):
                     return_list.append(arc.relation)
                 elif arcs_index > word_index:
                     break
-            if counter == 100000:
-                print(counter)
-                counter = 0
             yield return_list
             word_count += 1
             word_index += 1
 
 
 def write_data(engine, table_name, result):
-    return result.to_sql(
-        table_name,
-        engine,
-        schema='dw',
-        index=False,
-        index_label=False,
-        if_exists='append'
-    )
+    left = 0
+    right = 10000
+    length = len(result)
+    while left < length:
+        if right > length:
+            right = length
+        result[left:right].to_sql(
+                      table_name,
+                      engine,
+                      schema='dw',
+                      index=False,
+                      index_label=False,
+                      if_exists='append'
+                      )
+        left += 10000
+        right += 10000
+        print('10000 data have been written')
 
 
 def release_model(segmentor, postagger, recognizer, parser):
@@ -131,7 +152,7 @@ if __name__ == '__main__':
     # )
 
     # 分词
-    sql = '''select Top 50 * from dw.Sentences'''
+    sql = '''select * from dw.Sentences'''
     data = get_data(sql, conn)
     df = pd.DataFrame(
         list(process_data(data)),
@@ -141,7 +162,7 @@ if __name__ == '__main__':
             'children_relation',
         ]
     )
-    print(df)
-    # write_data(engine, 'Words', df)
+    # print(df)
+    write_data(engine, 'Words', df)
     # print('finished')
     release_model(segmentor, postagger, recognizer, parser)
