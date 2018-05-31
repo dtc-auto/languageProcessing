@@ -23,6 +23,7 @@ database = "Autohome_WOM"
 
 
 def connect_db():
+    # 连接数据库
     connected = pymssql.connect(server, user, password, database)
     return connected
 
@@ -45,24 +46,11 @@ def get_data(sql, conn):
     return data
 
 
-def thread_job():
-    print('This is an added Thread, number is %s' % threading.current_thread())
-
-
-def multi_threads():
-    added_thread = threading.Thread(target=thread_job())
-    added_thread.start()
-    print(threading.active_count())
-    # print(threading.enumerate())
-    # print(threading.current_thread())
-
-
 def split_sentence(sql_data):
+    # 进行分句处理的过程
     sentence_index = 0
-    # count = 0
     for comments in sql_data.itertuples():
-        sentence_list = re.split(pattern, comments.value)  # sentence_list为断句后形成的句子列表
-        # count += 1
+        sentence_list = re.split(pattern, comments.value)
         for sentence_pos, sentence_value in enumerate(sentence_list):
             sentence_index += 1
             return_list = list()
@@ -70,7 +58,6 @@ def split_sentence(sql_data):
                 return_list.append(comments.commentId)
                 return_list.append(sentence_pos + 1)
                 return_list.append(sentence_value)
-                # print(count)
                 yield return_list
             else:
                 break
@@ -108,6 +95,7 @@ def process_data(sql_data):
 
 
 def write_data(engine, table_name, result):
+    # 将数据分批写入数据库
     left = 0
     right = 10000
     length = len(result)
@@ -143,13 +131,17 @@ if __name__ == '__main__':
     )
 
     segmentor, postagger, recognizer, parser = load_model()  # load_model
+
     # 分句
-    # sql = '''select * from dw.Comments_Unpivot'''
-    # data = get_data(sql, conn)
-    # df2 = pd.DataFrame(
-    #     list(split_sentence(data)),
-    #     columns=['commentId',  'sentencePos', 'sentenceValue']
-    # )
+    sql = '''select * from dw.Comments_Unpivot'''
+    data = get_data(sql, conn)
+    df2 = pd.DataFrame(
+        list(split_sentence(data)),
+        columns=['commentId',  'sentencePos', 'sentenceValue']
+    )
+
+    # 写入数据库
+    write_data(engine, 'Sentences', df2)
 
     # 分词
     sql = '''select * from dw.Sentences'''
@@ -162,7 +154,6 @@ if __name__ == '__main__':
             'children_relation',
         ]
     )
-    # print(df)
+    # 写入数据库
     write_data(engine, 'Words', df)
-    # print('finished')
     release_model(segmentor, postagger, recognizer, parser)
