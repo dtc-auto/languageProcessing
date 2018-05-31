@@ -2,7 +2,6 @@ import pymssql
 import pandas as pd
 import os
 import re
-import threading
 from sqlalchemy import create_engine
 from pyltp import Segmentor
 from pyltp import Postagger
