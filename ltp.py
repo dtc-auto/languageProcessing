@@ -1,12 +1,13 @@
-import pymssql
-import pandas as pd
 import os
+import pymssql
 import re
-from sqlalchemy import create_engine
-from pyltp import Segmentor
-from pyltp import Postagger
-from pyltp import Parser
 from pyltp import NamedEntityRecognizer
+from pyltp import Parser
+from pyltp import Postagger
+from pyltp import Segmentor
+
+import pandas as pd
+from sqlalchemy import create_engine
 
 ltp_data_direction = r'H:\virtual environments\venv_ltp\ltp_data_v3.4.0'
 cws_model_path = os.path.join(ltp_data_direction, 'cws.model')
@@ -102,13 +103,13 @@ def write_data(engine, table_name, result):
         if right > length:
             right = length
         result[left:right].to_sql(
-                      table_name,
-                      engine,
-                      schema='dw',
-                      index=False,
-                      index_label=False,
-                      if_exists='append'
-                      )
+            table_name,
+            engine,
+            schema='dw',
+            index=False,
+            index_label=False,
+            if_exists='append'
+        )
         left += 10000
         right += 10000
         print('10000 data have been written')
@@ -136,7 +137,7 @@ if __name__ == '__main__':
     data = get_data(sql, conn)
     df2 = pd.DataFrame(
         list(split_sentence(data)),
-        columns=['commentId',  'sentencePos', 'sentenceValue']
+        columns=['commentId', 'sentencePos', 'sentenceValue']
     )
 
     # 写入数据库
